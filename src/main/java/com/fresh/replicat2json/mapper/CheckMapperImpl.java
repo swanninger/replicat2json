@@ -32,10 +32,22 @@ public class CheckMapperImpl implements CheckMapper {
         checkHeaderDTO.setIsReturn(false);
         String time = Short.toString(check.getOpenTime());
 
-        while (time.length() < 4) { //need to make length for so that substring works correctly.
-            time = "0" + time;
+        long minutes;
+
+        switch (time.length()) {
+            case 4:
+                minutes = Long.parseLong(time.substring(0, 2)) * 60 + Long.parseLong(time.substring(2));
+                break;
+            case 3: minutes = Long.parseLong(time.substring(0, 1)) * 60 + Long.parseLong(time.substring(1));
+                break;
+            default: minutes = Long.parseLong(time);
+                break;
         }
-        Long minutes = Long.parseLong(time.substring(0, 2)) * 60 + Long.parseLong(time.substring(2)); // convert time string to total minutes
+
+//        while (time.length() < 4) { //need to make length for so that substring works correctly.
+//            time = "0" + time;
+//        }
+//        Long minutes = Long.parseLong(time.substring(0, 2)) * 60 + Long.parseLong(time.substring(2)); // convert time string to total minutes
         checkHeaderDTO.setOpenTime(ZonedDateTime.of(check.getDateOfBusiness().plusMinutes(minutes), ZoneId.of("EST5EDT")));
         return checkHeaderDTO;
     }
@@ -70,7 +82,7 @@ public class CheckMapperImpl implements CheckMapper {
 
         checkTotals.setSubTotal(Double.toString(subtotal));
         checkTotals.setTaxTotal(Double.toString(taxTotal));
-        checkTotals.setDiscountTotal(Double.toString(- check.getPromos()));
+        checkTotals.setDiscountTotal(Double.toString(-check.getPromos()));
         checkTotals.setServiceChargeTotal(Double.toString(surcharge));
         checkTotals.setCheckTotal(Double.toString(subtotal + taxTotal + surcharge));
         checkTotals.setTenderTotal(Double.toString(check.getPayment()));
