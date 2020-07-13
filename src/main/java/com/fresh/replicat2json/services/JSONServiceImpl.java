@@ -1,5 +1,6 @@
 package com.fresh.replicat2json.services;
 
+import com.Ostermiller.util.CircularByteBuffer;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -9,13 +10,13 @@ import com.fresh.replicat2json.domain.Store;
 import com.fresh.replicat2json.mapper.CheckMapper;
 import com.fresh.replicat2json.mapper.StoreMapper;
 import com.fresh.replicat2json.model.StoreDTO;
+import com.jcraft.jsch.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -35,14 +36,14 @@ public class JSONServiceImpl implements JSONService {
     private final StoreMapper storeMapper;
     private final CheckMapper checkMapper;
 
-    private final ReplicatConfig replicatConfig;
+    private final ReplicatConfig config;
 
-    public JSONServiceImpl(StoreService storeService, CheckService checkService, StoreMapper storeMapper, CheckMapper checkMapper, ReplicatConfig replicatConfig) {
+    public JSONServiceImpl(StoreService storeService, CheckService checkService, StoreMapper storeMapper, CheckMapper checkMapper, ReplicatConfig config) {
         this.storeService = storeService;
         this.checkService = checkService;
         this.storeMapper = storeMapper;
         this.checkMapper = checkMapper;
-        this.replicatConfig = replicatConfig;
+        this.config = config;
 
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         objectMapper.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
@@ -62,8 +63,8 @@ public class JSONServiceImpl implements JSONService {
         List<Store> stores = getUpdatedStores(date);
         List<StoreDTO> storeDTOs = new LinkedList<>();
         for (Store store : stores) {
-            if (store.getStoreId() == 2 || store.getStoreId() == 3) //used for testing since all stores takes some times
-                storeDTOs.add(generateStoreDTO(store, date));
+//            if (store.getStoreId() == 2) //used for testing since all stores takes some times
+            storeDTOs.add(generateStoreDTO(store, date));
         }
         zipFiles(date, storeDTOs);
     }
@@ -81,6 +82,7 @@ public class JSONServiceImpl implements JSONService {
     }
 
     private StoreDTO generateStoreDTO(Store store, LocalDate date) {
+        log.info("Generating DTO for " + store.getName());
         StoreDTO storeDTO = storeMapper.storeToStoreDTO(store, date); //format store object
 
         List<Check> checks = checkService.getChecksByStoreAndDate(store.getStoreId(), LocalDateTime.of(date, LocalTime.of(0, 0)));
@@ -88,14 +90,15 @@ public class JSONServiceImpl implements JSONService {
             storeDTO.getChecks().add(checkMapper.CheckToCheckDTO(check)); //format check and add to store
         }
 //        saveToJSONFile("target/" + date.toString() + "_" + store.getStoreId() + ".json", storeDTO);
+        log.info(store.getName() + " DTO generated");
         return storeDTO;
     }
 
     private void zipFiles(LocalDate date, List<StoreDTO> storeDTOs) {
         try {
-            File f = new File(replicatConfig.getMerchantId() + "_" + date.toString() + ".zip");
+            CircularByteBuffer cbb = new CircularByteBuffer(CircularByteBuffer.INFINITE_SIZE);
 
-            ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(f));
+            ZipOutputStream zipOut = new ZipOutputStream(cbb.getOutputStream());
 
             for (StoreDTO store : storeDTOs) {
                 ZipEntry e = new ZipEntry(store.getHeader().getStoreCode() + "_" + date.toString() + ".json"); // new file in the zip
@@ -106,8 +109,27 @@ public class JSONServiceImpl implements JSONService {
             }
 
             zipOut.close();
+
+            ChannelSftp channel = connectToFtp();
+            channel.connect();
+            channel.put(cbb.getInputStream(), config.getSftpPath() + config.getMerchantId() + "_" + date.toString() + ".zip");
+
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (JSchException | SftpException e) {
+            log.error("FTP Failed");
+            e.printStackTrace();
         }
+    }
+
+    public ChannelSftp connectToFtp() throws JSchException {
+        JSch jsch = new JSch();
+        jsch.setKnownHosts(config.getKnownHostsFile());
+        jsch.addIdentity(config.getSftpPrivateKey(), config.getSftpPrivateKeyPass());
+
+        Session session = jsch.getSession(config.getSftpUser(), config.getSftpHost(), config.getSftpPort());
+        session.connect();
+
+        return (ChannelSftp) session.openChannel("sftp");
     }
 }

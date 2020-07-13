@@ -18,4 +18,12 @@ public class ReplicatConfig {
     List<Integer> regionsToSkip;
     LocalDate dateToRun;
     Integer merchantId;
+    String sftpUser;
+    String sftpHost;
+    String sftpPass;
+    Integer sftpPort;
+    String sftpPrivateKey;
+    String sftpPrivateKeyPass;
+    String knownHostsFile;
+    String sftpPath;
 }
