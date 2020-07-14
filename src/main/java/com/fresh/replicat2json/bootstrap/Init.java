@@ -33,6 +33,7 @@ public class Init implements ApplicationListener<ContextRefreshedEvent> {
     @Override
     @Transactional
     public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
+//        log.warn("jarpath = " + replicatConfig.getJarPath());
         log.warn("repl Start.");
         LocalDate date;
         if (replicatConfig.getDateToRun() != null) {

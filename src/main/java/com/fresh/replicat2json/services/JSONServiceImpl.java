@@ -124,8 +124,8 @@ public class JSONServiceImpl implements JSONService {
 
     public ChannelSftp connectToFtp() throws JSchException {
         JSch jsch = new JSch();
-        jsch.setKnownHosts(config.getKnownHostsFile());
-        jsch.addIdentity(config.getSftpPrivateKey(), config.getSftpPrivateKeyPass());
+        jsch.setKnownHosts(config.getJarPath() + "/" + config.getKnownHostsFile());
+        jsch.addIdentity(config.getJarPath() + "/" + config.getSftpPrivateKey(), config.getSftpPrivateKeyPass());
 
         Session session = jsch.getSession(config.getSftpUser(), config.getSftpHost(), config.getSftpPort());
         session.connect();
