@@ -3,6 +3,8 @@ package com.fresh.replicat2json.mapper;
 import com.fresh.replicat2json.domain.Check;
 import com.fresh.replicat2json.domain.CheckItem;
 import com.fresh.replicat2json.model.*;
+import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.ZoneId;
@@ -11,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 @Component
+@Slf4j
 public class CheckMapperImpl implements CheckMapper {
 
     @Override
@@ -20,7 +23,16 @@ public class CheckMapperImpl implements CheckMapper {
         } else {
             CheckDTO checkDTO = new CheckDTO();
             checkDTO.setHeader(createHeader(check));
-            checkDTO.setItems(createCheckItems(check));
+
+            try {
+                if (!check.getCheckItems().isEmpty()) {
+                    checkDTO.setItems(createCheckItems(check));
+                }
+            } catch (Exception e) {
+                log.error(check.toString());
+                e.printStackTrace();
+            }
+
             checkDTO.setTotals(createTotals(check));
             return checkDTO;
         }
@@ -38,9 +50,11 @@ public class CheckMapperImpl implements CheckMapper {
             case 4:
                 minutes = Long.parseLong(time.substring(0, 2)) * 60 + Long.parseLong(time.substring(2));
                 break;
-            case 3: minutes = Long.parseLong(time.substring(0, 1)) * 60 + Long.parseLong(time.substring(1));
+            case 3:
+                minutes = Long.parseLong(time.substring(0, 1)) * 60 + Long.parseLong(time.substring(1));
                 break;
-            default: minutes = Long.parseLong(time);
+            default:
+                minutes = Long.parseLong(time);
                 break;
         }
 
@@ -52,13 +66,26 @@ public class CheckMapperImpl implements CheckMapper {
         return checkHeaderDTO;
     }
 
-    private List<CheckItemDTO> createCheckItems(Check check) {
+    private List<CheckItemDTO> createCheckItems(Check check) throws Exception{
         List<CheckItemDTO> checkItems = new LinkedList<>();
         for (CheckItem checkItem : check.getCheckItems()) {
-            if (checkItem.getParentId() == 0) {
+            if (checkItem.getParentId() != null && checkItem.getParentId() == 0) {
                 CheckItemDTO checkItemDTO = new CheckItemDTO();
                 checkItemDTO.setItemId(Integer.toString(checkItem.getFkItemId()));
-                checkItemDTO.setName(checkItem.getItemName().getLongName());
+
+                try {
+                    if (checkItem.getItemName() != null) {
+                        checkItemDTO.setName(checkItem.getItemName().getLongName());
+                    } else {
+                        log.warn("Item " + checkItemDTO.getItemId() + " at location " + check.getFkStoreId() + " missing name");
+                        checkItemDTO.setName("null");
+//                        log.error(checkItem.toString());
+                    }
+                } catch (Exception e) {
+                    log.error(checkItem.toString());
+                    e.printStackTrace();
+                }
+
                 checkItemDTO.setPrice(Double.toString(checkItem.getPrice()));
                 checkItemDTO.setFullPrice(Double.toString(checkItem.getDiscPric()));
 

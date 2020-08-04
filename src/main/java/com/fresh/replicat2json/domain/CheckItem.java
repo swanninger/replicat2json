@@ -33,7 +33,7 @@ public class CheckItem {
 
     @ToString.Include
     private int fkItemId;
-    private int parentId;
+    private Integer parentId;
 
     @ToString.Include
     private double price;

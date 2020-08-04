@@ -63,7 +63,7 @@ public class JSONServiceImpl implements JSONService {
         List<Store> stores = getUpdatedStores(date);
         List<StoreDTO> storeDTOs = new LinkedList<>();
         for (Store store : stores) {
-//            if (store.getStoreId() == 2) //used for testing since all stores takes some times
+//            if (store.getStoreId() == 36) //used for testing since all stores takes some times
             storeDTOs.add(generateStoreDTO(store, date));
         }
         zipFiles(date, storeDTOs);
@@ -101,10 +101,13 @@ public class JSONServiceImpl implements JSONService {
             ZipOutputStream zipOut = new ZipOutputStream(cbb.getOutputStream());
 
             for (StoreDTO store : storeDTOs) {
+                List<StoreDTO> storeList = new LinkedList<>();
+                storeList.add(store);
+
                 ZipEntry e = new ZipEntry(store.getHeader().getStoreCode() + "_" + date.toString() + ".json"); // new file in the zip
                 zipOut.putNextEntry(e);
 
-                objectMapper.writeValue(zipOut, store); //write JSON to file
+                objectMapper.writeValue(zipOut, storeList); //write JSON to file
                 zipOut.closeEntry();
             }
 
@@ -112,7 +115,7 @@ public class JSONServiceImpl implements JSONService {
 
             ChannelSftp channel = connectToFtp();
             channel.connect();
-            channel.put(cbb.getInputStream(), config.getSftpPath() + config.getMerchantId() + "_" + date.toString() + ".zip");
+            channel.put(cbb.getInputStream(), config.getSftpPath() + config.getMerchantIdFull() + "_" + date.toString() + ".zip");
 
         } catch (IOException e) {
             e.printStackTrace();

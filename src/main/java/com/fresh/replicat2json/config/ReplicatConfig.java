@@ -20,6 +20,7 @@ public class ReplicatConfig {
     List<Integer> regionsToSkip;
     LocalDate dateToRun;
     Integer merchantId;
+    String merchantIdFull;
     String sftpUser;
     String sftpHost;
     String sftpPass;
