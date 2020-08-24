@@ -63,7 +63,7 @@ public class JSONServiceImpl implements JSONService {
         List<Store> stores = getUpdatedStores(date);
         List<StoreDTO> storeDTOs = new LinkedList<>();
         for (Store store : stores) {
-            if (store.getStoreId() == 36) //used for testing since all stores takes some times
+//            if (store.getStoreId() == 36) //used for testing since all stores takes some times
             storeDTOs.add(generateStoreDTO(store, date));
         }
         zipFiles(date, storeDTOs);
