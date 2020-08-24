@@ -1,9 +1,9 @@
 package com.fresh.replicat2json.mapper;
 
+import com.fresh.replicat2json.config.ReplicatConfig;
 import com.fresh.replicat2json.domain.Check;
 import com.fresh.replicat2json.domain.CheckItem;
 import com.fresh.replicat2json.model.*;
-import lombok.extern.log4j.Log4j2;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +15,11 @@ import java.util.List;
 @Component
 @Slf4j
 public class CheckMapperImpl implements CheckMapper {
+    private final ReplicatConfig config;
+
+    public CheckMapperImpl(ReplicatConfig config) {
+        this.config = config;
+    }
 
     @Override
     public CheckDTO CheckToCheckDTO(Check check) {
@@ -66,10 +71,15 @@ public class CheckMapperImpl implements CheckMapper {
         return checkHeaderDTO;
     }
 
-    private List<CheckItemDTO> createCheckItems(Check check) throws Exception{
+    private List<CheckItemDTO> createCheckItems(Check check) throws Exception {
         List<CheckItemDTO> checkItems = new LinkedList<>();
+
+        log.info(check.getCheckItems().toString());
+
         for (CheckItem checkItem : check.getCheckItems()) {
-            if (checkItem.getParentId() != null && checkItem.getParentId() == 0) {
+            if (config.getItemsToSkip().contains(checkItem.getFkItemId())) continue;
+
+            if (checkItem.getParentId() == 0) { // then its a base item
                 CheckItemDTO checkItemDTO = new CheckItemDTO();
                 checkItemDTO.setItemId(Integer.toString(checkItem.getFkItemId()));
 
@@ -77,7 +87,7 @@ public class CheckMapperImpl implements CheckMapper {
                     if (checkItem.getItemName() != null) {
                         checkItemDTO.setName(checkItem.getItemName().getLongName());
                     } else {
-                        log.warn("Item " + checkItemDTO.getItemId() + " at location " + check.getFkStoreId() + " missing name");
+                        log.warn("Item " + checkItem.getFkItemId() + " at location " + check.getFkStoreId() + " missing name");
                         checkItemDTO.setName("null");
 //                        log.error(checkItem.toString());
                     }
@@ -95,6 +105,38 @@ public class CheckMapperImpl implements CheckMapper {
                 checkItemDTO.getCategories().add(categoryDTO);
 
                 checkItems.add(checkItemDTO);
+            } else if (config.getMods()) { // then its a mod
+                ModifierDTO modifierDTO = new ModifierDTO();
+                modifierDTO.setItemId(Integer.toString(checkItem.getFkItemId()));
+
+                try {
+                    if (checkItem.getItemName() != null) {
+                        modifierDTO.setName(checkItem.getItemName().getLongName());
+                    } else {
+                        log.warn("Item " + checkItem.getFkItemId() + " at location " + check.getFkStoreId() + " missing name");
+                        modifierDTO.setName("null");
+                    }
+                } catch (Exception e) {
+                    log.error(checkItem.toString());
+                    e.printStackTrace();
+                }
+
+                modifierDTO.setPrice(Double.toString(checkItem.getPrice()));
+                modifierDTO.setFullPrice(Double.toString(checkItem.getDiscPric()));
+
+                CategoryDTO categoryDTO = new CategoryDTO();
+                categoryDTO.setId(Integer.toString(checkItem.getCategory().getCategoryId()));
+                categoryDTO.setName(checkItem.getCategory().getName());
+                modifierDTO.getCategories().add(categoryDTO);
+
+                try {
+                    checkItems.get(checkItems.size() - 1).getModifiers().add(modifierDTO); //add to the last check item's mod list
+
+                } catch (Exception e) {
+                    log.warn("Check items: " + checkItems);
+                    log.warn(check.toString());
+                    e.printStackTrace();
+                }
             }
         }
 

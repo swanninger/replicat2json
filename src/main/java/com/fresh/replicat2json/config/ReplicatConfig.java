@@ -18,6 +18,7 @@ import java.util.List;
 public class ReplicatConfig {
     List<Integer> storesToSkip;
     List<Integer> regionsToSkip;
+    List<Integer> itemsToSkip;
     LocalDate dateToRun;
     Integer merchantId;
     String merchantIdFull;
@@ -30,6 +31,7 @@ public class ReplicatConfig {
     String knownHostsFile;
     String sftpPath;
     String jarPath;
+    Boolean mods;
 
     public String getJarPath() {
         if (jarPath.isEmpty()) {

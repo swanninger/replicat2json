@@ -10,12 +10,10 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CheckItemDTO {
-    private String type = "menuItem";
+public class ModifierDTO {
     private String itemId;
     private String name;
-    private String price; //price
+    private String price;
     private String fullPrice; //DiscPrice
-    private List<CategoryDTO> categories = new LinkedList<>(); //only one
-    private List<ModifierDTO> modifiers = new LinkedList<>();
+    private List<CategoryDTO> categories = new LinkedList<>();
 }
